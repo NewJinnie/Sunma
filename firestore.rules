@@ -1,0 +1,119 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Collection rules
+  	match /users/{userId} {
+    	allow read;
+    	allow update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      
+      match /articles/{articleId} {
+      	allow read;
+        allow create, update, delete: if request.auth != null && request.auth.uid == userId;
+
+        match /likedBy/{likedById} {
+          allow read;
+          allow create: if request.auth != null;
+          allow update: if request.auth != null && request.auth.uid == request.resource.data.uid;
+          allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+        }
+
+        match /stockedBy/{stockedById} {
+          allow read;
+          allow create: if request.auth != null;
+          allow update: if request.auth != null && request.auth.uid == request.resource.data.uid;
+          allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+        }
+
+        match /commentedBy/{commentedById} {
+          allow read;
+          allow create: if request.auth != null; 
+          allow update: if request.auth != null && request.auth.uid == request.resource.data.uid;
+          allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+
+          match /commentLikedBy/{commentLikedById} {
+          allow read;
+          allow create: if request.auth != null;
+          allow update: if request.auth != null && request.auth.uid == request.resource.data.uid;
+          allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+          }
+        }
+      }
+
+      match /drafts/{draftId} {
+        allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /stocks/{stockId} {
+        allow read, create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == resource.data.uid)
+      }
+
+      match /likes/{likeId} {
+        allow read, create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == resource.data.uid)
+      }
+
+      match /comments/{commentId} {
+        allow read;
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == resource.data.uid)
+      }
+
+      match /commentLikes/{commentLikeId} {
+        allow read;
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == resource.data.uid)
+      }
+
+      match /notifications/{notification} {
+        allow read, update: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null;
+        allow delete: if request.auth != null && (request.auth.uid == userId || request.auth.uid == resource.data.uid)
+      }
+    }
+
+    // Collection Group rules
+    match /{path=**}/articles/{articleId} {
+      allow read;
+    }
+
+    match /{path=**}/likes/{likeId} {
+      allow read;
+    }
+
+    match /{path=**}/stocks/{stockId} {
+      allow read;
+    }
+
+    match /{path=**}/comments/{commentId} {
+      allow read;
+    }
+
+    match /{path=**}/notifications/{notificationId} {
+      allow read;
+    }
+
+    match /{path=**}/commentLikes/{commentLikeId} {
+      allow read;
+    }
+
+    match /{path=**}/likedBy/{likedById} {
+      allow read;
+    }
+
+    match /{path=**}/stockedBy/{stockedById} {
+      allow read;
+    }
+
+    match /{path=**}/commentedBy/{commentedById} {
+      allow read;
+    }
+
+    match /{path=**}/commentLikedBy/{commentLikedById} {
+      allow read;
+    }
+  }
+}

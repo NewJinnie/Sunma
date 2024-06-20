@@ -1,0 +1,406 @@
+// Tiptap Editor
+.tiptap {
+  outline: none;
+  margin-top: 1.5em;
+
+  .link-preview-wrapper {
+    width: 100%;
+    border: 1px solid;
+    border-radius: 8px;
+    border-color: lightgray;
+
+    > a {
+      display: flex !important;
+      justify-content: space-between;
+      text-decoration: none;
+      height: 120px;
+      &:hover {
+        background-color: whitesmoke;
+      }
+    }
+
+    .link-preview-text-wrapper {
+      $imageWidth: 230px;
+      width: calc(100% - #{$imageWidth});
+      display: flex;
+      flex-flow: column;
+      justify-content: space-between;
+      padding: 15px;
+    }
+
+    .link-preview-image-wrapper {
+      width: 230px;
+      height: 120px;
+
+      .link-preview-image {
+        height: 100%;
+        width: 100%;
+      }
+    }
+
+    .link-preview-text-wrapper-sp {
+      $imageWidth: 120px;
+      width: calc(100% - #{$imageWidth});
+      display: flex;
+      flex-flow: column;
+      justify-content: space-between;
+      padding: 15px;
+    }
+
+    .link-preview-image-wrapper-sp {
+      height: 120px;
+      width: 120px;
+
+      .link-preview-image-sp {
+        height: 100%;
+        width: 100%;
+        object-fit: cover;
+      }
+    }
+
+    .link-preview-url {
+      display: block;
+    }
+
+    .link-preview-title {
+      color: black;
+      font-size: small;
+      font-weight: bold;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      width: 100%;
+    }
+    .link-preview-description {
+      color: gray;
+      font-size: x-small;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      width: 100%;
+
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+    .link-preview-url {
+      color: black;
+      font-size: x-small;
+    }
+  }
+
+  pre {
+    background: #0d0d0d;
+    color: #fff;
+    font-family: 'JetBrainsMono', monospace;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+
+    code {
+      color: inherit;
+      padding: 0;
+      background: none;
+      font-size: 0.8rem;
+    }
+
+    .hljs-comment,
+    .hljs-quote {
+      color: #616161;
+    }
+
+    .hljs-variable,
+    .hljs-template-variable,
+    .hljs-attribute,
+    .hljs-tag,
+    .hljs-name,
+    .hljs-regexp,
+    .hljs-link,
+    .hljs-name,
+    .hljs-selector-id,
+    .hljs-selector-class {
+      color: #f98181;
+    }
+
+    .hljs-number,
+    .hljs-meta,
+    .hljs-built_in,
+    .hljs-builtin-name,
+    .hljs-literal,
+    .hljs-type,
+    .hljs-params {
+      color: #fbbc88;
+    }
+
+    .hljs-string,
+    .hljs-symbol,
+    .hljs-bullet {
+      color: #b9f18d;
+    }
+
+    .hljs-title,
+    .hljs-section {
+      color: #faf594;
+    }
+
+    .hljs-keyword,
+    .hljs-selector-tag {
+      color: #70cff8;
+    }
+
+    .hljs-emphasis {
+      font-style: italic;
+    }
+
+    .hljs-strong {
+      font-weight: 700;
+    }
+  }
+
+  table {
+    border-collapse: collapse;
+    margin: 0;
+    overflow: hidden;
+    table-layout: fixed;
+    width: 100% !important;
+    white-space: pre-wrap;
+    min-width: 450px !important;
+
+    td,
+    th {
+      border: 2px solid #ced4da;
+      box-sizing: border-box;
+      min-width: 1em;
+      padding: 3px 5px;
+      position: relative;
+      vertical-align: top;
+
+      > * {
+        margin-bottom: 0;
+      }
+    }
+
+    th {
+      text-align: left;
+      font-weight: normal;
+    }
+
+    .selectedCell:after {
+      background: rgba(200, 200, 255, 0.4);
+      content: '';
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .column-resize-handle {
+      background-color: #adf;
+      bottom: -2px;
+      position: absolute;
+      right: -2px;
+      pointer-events: none;
+      top: 0;
+      width: 4px;
+    }
+
+    p {
+      margin: 0;
+    }
+  }
+
+  .tableWrapper {
+    padding: 1rem 0;
+    overflow-x: auto;
+  }
+
+  .resize-cursor {
+    cursor: ew-resize;
+    cursor: col-resize;
+  }
+
+  a {
+    text-decoration: underline;
+    cursor: pointer;
+    color: gray;
+  }
+
+  p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+
+  > * + * {
+    margin-top: 0.75em;
+  }
+
+  ul,
+  ol {
+    padding: 0 1rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.1;
+    font-size: revert;
+  }
+
+  code {
+    background-color: rgba(#616161, 0.1);
+    color: #616161;
+  }
+
+  pre {
+    background: #0d0d0d;
+    color: #fff;
+    font-family: 'JetBrainsMono', monospace;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+
+    code {
+      color: inherit;
+      padding: 0;
+      background: none;
+      font-size: 0.8rem;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  hr {
+    margin: 1rem 0;
+  }
+
+  blockquote {
+    padding-left: 1rem;
+    border-left: 2px solid rgba(#0d0d0d, 0.1);
+  }
+}
+
+.toc-item-box {
+  padding-left: calc(1rem * (var(--level) - 1));
+  line-height: 30px;
+}
+
+.toc-item-link {
+  color: 'gray';
+  &:hover {
+    color: 'black';
+  }
+}
+
+// React Tag
+.container {
+  margin: auto;
+  width: 50%;
+}
+.ReactTags__tags {
+  position: relative;
+}
+
+.ReactTags__clearAll {
+  cursor: pointer;
+  padding: 10px;
+  margin: 10px;
+  background: #f88d8d;
+  color: #fff;
+  border: none;
+}
+
+/* Styles for the input */
+.ReactTags__tagInput {
+  border-radius: 2px;
+  display: inline-block;
+}
+.ReactTags__tagInput input.ReactTags__tagInputField,
+.ReactTags__tagInput input.ReactTags__tagInputField:focus {
+  height: 35px;
+  margin: 0;
+  font-size: 12px;
+  min-width: 400px;
+  border: none;
+  outline: none;
+}
+
+.ReactTags__editInput {
+  border-radius: 1px;
+}
+
+.ReactTags__editTagInput {
+  display: inline-flex;
+}
+
+/* Styles for selected tags */
+.ReactTags__selected span.ReactTags__tag {
+  background: #edf2f7;
+  color: #1a202c;
+  font-size: 12px;
+  display: inline-block;
+  padding: 5px;
+  border-radius: 0.375em;
+  font-weight: 400;
+  margin-right: 0.5em;
+  cursor: default !important;
+}
+.ReactTags__selected a.ReactTags__remove {
+  color: #1a202c;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+/* Styles for suggestions */
+.ReactTags__suggestions {
+  position: absolute;
+}
+.ReactTags__suggestions ul {
+  list-style-type: none;
+  box-shadow: 0.05em 0.01em 0.5em rgba(0, 0, 0, 0.2);
+  background: white;
+  width: 200px;
+}
+.ReactTags__suggestions li {
+  border-bottom: 1px solid #ddd;
+  padding: 5px 10px;
+  margin: 0;
+}
+.ReactTags__suggestions li mark {
+  text-decoration: underline;
+  background: none;
+  font-weight: 600;
+}
+.ReactTags__suggestions ul li.ReactTags__activeSuggestion {
+  background: #b7cfe0;
+  cursor: pointer;
+}
+
+.ReactTags__remove {
+  border: none;
+  cursor: pointer;
+  background: none;
+  color: #1a202c;
+  padding-left: 5px;
+}
+
+.ReactTags__error {
+  color: #e03131;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    padding: 0 5px;
+  }
+}
