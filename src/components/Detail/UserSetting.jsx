@@ -7,7 +7,6 @@ import {
   HStack,
   Input,
   ChakraProvider,
-  theme,
   Avatar,
   Button,
   Textarea,
@@ -21,6 +20,7 @@ import {
   ModalCloseButton,
   useDisclosure,
 } from '@chakra-ui/react';
+import theme from '../../common/chakraTheme';
 import { useAtom } from 'jotai';
 import { isWelcomeAtom, authUserAtom } from '../../state/atoms';
 import { Link, useNavigate } from 'react-router-dom';

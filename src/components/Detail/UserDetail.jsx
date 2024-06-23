@@ -285,18 +285,20 @@ const UserDetail = () => {
               panel.map((article, i) => (
                 <Card key={i} w={showCardWidth()} h={isSp ? '150px' : '180px'}>
                   <CardHeader padding="10px 20px">
-                    <HStack>
-                      <Link as={RouterLink} to={`/users/${article.uid}`}>
-                        <Avatar
-                          name={article.userName}
-                          src={article.photoUrl}
-                          size="sm"
-                        />
-                      </Link>
-                      <Link as={RouterLink} to={`/users/${article.uid}`}>
-                        <Text fontSize="sm">{article.userName}</Text>
-                      </Link>
-                    </HStack>
+                    {!article.did && (
+                      <HStack>
+                        <Link as={RouterLink} to={`/users/${article.uid}`}>
+                          <Avatar
+                            name={article.userName}
+                            src={article.photoUrl}
+                            size="sm"
+                          />
+                        </Link>
+                        <Link as={RouterLink} to={`/users/${article.uid}`}>
+                          <Text fontSize="sm">{article.userName}</Text>
+                        </Link>
+                      </HStack>
+                    )}
                   </CardHeader>
                   <CardBody padding="10px 20px">
                     <Link

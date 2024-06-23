@@ -20,10 +20,11 @@ import {
   collectionGroup,
   where,
   getCountFromServer,
+  limit,
+  startAfter,
 } from 'firebase/firestore';
 import {
   Box,
-  Link as ChakraLink,
   VStack,
   IconButton,
   Icon,
@@ -57,6 +58,7 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
+  Progress,
 } from '@chakra-ui/react';
 import { TiHeartFullOutline, TiHeartOutline } from 'react-icons/ti';
 import {
@@ -128,6 +130,12 @@ const PostDetail = () => {
   const [isUpdateCommentLoading, setIsUpdateCommentLoading] = useState(false);
 
   const [editorContents, setEditorContents] = useState(undefined);
+
+  const [contentCount, setContentCount] = useState(0);
+  const [contentFetchCount, setContentFetchCount] = useState(0);
+  const isContentMax = contentCount === contentFetchCount;
+  const [lastContentVisible, setLastContentVisible] = useState(undefined);
+  const [isContentFetch, setIsContentFetch] = useState(false);
 
   const storeType = {
     NEW: 'NEW',
@@ -282,11 +290,44 @@ const PostDetail = () => {
           const likedCollSnap = await getCountFromServer(likedColl);
           const stockedCollSnap = await getCountFromServer(stockedColl);
 
+          const articleContentsColl = collection(
+            db,
+            'users',
+            uid,
+            'articles',
+            aid,
+            'contents'
+          );
+          const articleContentsCountSnap = await getCountFromServer(
+            articleContentsColl
+          );
+          setContentCount(articleContentsCountSnap.data().count);
+
+          const articleContentsQuery = query(
+            articleContentsColl,
+            orderBy('index', 'asc'),
+            limit(1)
+          );
+          const articleContentsSnap = await getDocs(articleContentsQuery);
+
+          const lastVisible =
+            articleContentsSnap.docs[articleContentsSnap.docs.length - 1];
+
+          const articleContents = articleContentsSnap.docs.flatMap(
+            docData => docData.data().content
+          );
+
+          const tiptapContent = {
+            type: 'doc',
+            content: articleContents,
+          };
+
           setAuthor(authorSnap.data());
           setArticle({
             ...articleSnap.data(),
             likedCount: likedCollSnap.data().count,
             stockedCount: stockedCollSnap.data().count,
+            content: tiptapContent,
           });
 
           let authUserCommentLikes = [];
@@ -344,10 +385,13 @@ const PostDetail = () => {
 
           setComments(comments);
 
-          editorInstance.commands.setContent(articleSnap.data().content);
+          editorInstance.commands.setContent(tiptapContent);
           editorInstance.setEditable(false);
           setEditor(editorInstance);
           setEditorContents(editorInstance.getJSON().content);
+          setLastContentVisible(lastVisible);
+          setContentFetchCount(contentFetchCount + 1);
+          setIsContentFetch(true);
         }
       }
     };
@@ -386,6 +430,53 @@ const PostDetail = () => {
     // Ignore the warning of "React Hook useEffect has a missing dependency"
     // eslint-disable-next-line
   }, [authUser]);
+
+  useEffect(() => {
+    const fetchMoreArticleContent = async () => {
+      const articleContentQuery = query(
+        collection(db, 'users', uid, 'articles', aid, 'contents'),
+        orderBy('index', 'asc'),
+        startAfter(lastContentVisible),
+        limit(1)
+      );
+      const articleContentSnap = await getDocs(articleContentQuery);
+
+      const fetchedArticleContents = articleContentSnap.docs.flatMap(
+        docData => docData.data().content
+      );
+      const updatedArticleContents = editorContents.concat(
+        fetchedArticleContents
+      );
+
+      const tiptapContent = {
+        type: 'doc',
+        content: updatedArticleContents,
+      };
+
+      editor.commands.setContent(tiptapContent);
+      setEditorContents(updatedArticleContents);
+
+      const lastVisible =
+        articleContentSnap.docs[articleContentSnap.docs.length - 1];
+      setLastContentVisible(lastVisible);
+      setContentFetchCount(contentFetchCount => contentFetchCount + 1);
+    };
+
+    if (isContentFetch && lastContentVisible && editor && !isContentMax) {
+      setIsContentFetch(false);
+      fetchMoreArticleContent();
+      setIsContentFetch(true);
+    }
+  }, [
+    isContentMax,
+    lastContentVisible,
+    contentFetchCount,
+    aid,
+    editor,
+    editorContents,
+    uid,
+    isContentFetch,
+  ]);
 
   const updateReactions = async type => {
     const authUserReactionRef =
@@ -584,16 +675,13 @@ const PostDetail = () => {
                   <VStack>
                     {articleLikeUsers.map(likeUser => (
                       <HStack key={likeUser.uid} w="100%">
-                        <ChakraLink
-                          as={RouterLink}
-                          to={`/users/${likeUser.uid}`}
-                        >
+                        <RouterLink to={`/users/${likeUser.uid}`}>
                           <Avatar
                             name={likeUser.userName}
                             src={likeUser.photoUrl}
                             size="sm"
                           />
-                        </ChakraLink>
+                        </RouterLink>
 
                         <VStack alignItems="baseline">
                           <Button
@@ -904,14 +992,11 @@ const PostDetail = () => {
                           size="lg"
                         />
                         <MenuList opacity="0">
-                          <ChakraLink
-                            as={RouterLink}
-                            to={`/editor/articles/${aid}`}
-                          >
+                          <RouterLink to={`/editor/articles/${aid}`}>
                             <MenuItem icon={<Icon as={LuFileEdit} />}>
                               編集する
                             </MenuItem>
-                          </ChakraLink>
+                          </RouterLink>
                           <MenuItem
                             isLoading={isPostDeleteLoading}
                             color="red"
@@ -964,12 +1049,12 @@ const PostDetail = () => {
                       {article.title}
                     </Heading>
                     {isSp && (
-                      <ChakraLink as={RouterLink} to={`/users/${author.uid}`}>
+                      <RouterLink to={`/users/${author.uid}`}>
                         <HStack>
                           <Avatar src={author.photoUrl} size="xs" />
                           <Text>{author.userName}</Text>
                         </HStack>
-                      </ChakraLink>
+                      </RouterLink>
                     )}
                     <HStack flexWrap="wrap">
                       {article.tags.map((tag, i) => {
@@ -997,12 +1082,23 @@ const PostDetail = () => {
                     )}
                     <Box w="100%">
                       <EditorContent editor={editor} />
+                      {!isContentMax && (
+                        <Flex
+                          w="100%"
+                          h="2em"
+                          justifyContent="center"
+                          alignItems="center"
+                          mt="2em"
+                        >
+                          <Progress color="teal" isIndeterminate />
+                        </Flex>
+                      )}
                     </Box>
                   </VStack>
                 </Box>
                 {isSp && (
                   <Box w="100%" bg="white" borderRadius="10px">
-                    <ChakraLink as={RouterLink} to={`users//${author.uid}`}>
+                    <RouterLink to={`users//${author.uid}`}>
                       <VStack padding="20px" alignItems="baseline">
                         <Text fontWeight="bold" padding="0.5em">
                           Author
@@ -1019,7 +1115,7 @@ const PostDetail = () => {
                           </VStack>
                         </HStack>
                       </VStack>
-                    </ChakraLink>
+                    </RouterLink>
                   </Box>
                 )}
                 <Box w="100%">
@@ -1042,12 +1138,9 @@ const PostDetail = () => {
                               padding="10px"
                             >
                               <HStack>
-                                <ChakraLink
-                                  as={RouterLink}
-                                  to={`/users/${comment.uid}`}
-                                >
+                                <RouterLink to={`/users/${comment.uid}`}>
                                   <Avatar size="sm" src={comment.photoUrl} />
-                                </ChakraLink>
+                                </RouterLink>
                                 <Button
                                   variant="link"
                                   color="gray"
@@ -1258,7 +1351,7 @@ const PostDetail = () => {
                   top="0"
                 >
                   <Card w="75%">
-                    <ChakraLink as={RouterLink} to={`/users/${author.uid}`}>
+                    <RouterLink to={`/users/${author.uid}`}>
                       <VStack padding="20px" alignItems="baseline">
                         <Text fontWeight="bold" padding="0.5em">
                           Author
@@ -1273,7 +1366,7 @@ const PostDetail = () => {
                           </Text>
                         </VStack>
                       </VStack>
-                    </ChakraLink>
+                    </RouterLink>
                   </Card>
                   {article.tocItems.length !== 0 && (
                     <Card w="75%" marginTop="1em">

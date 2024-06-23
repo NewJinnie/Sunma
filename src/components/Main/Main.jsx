@@ -1,5 +1,6 @@
 import React from 'react';
-import { ChakraProvider, Box, VStack, theme, Flex } from '@chakra-ui/react';
+import { ChakraProvider, Box, VStack, Flex } from '@chakra-ui/react';
+import theme from '../../common/chakraTheme';
 import Header from './Header';
 import Posts from './Posts';
 import Footer from './Footer';

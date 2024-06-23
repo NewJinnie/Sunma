@@ -10,12 +10,14 @@ import {
   Grid,
   GridItem,
   VStack,
-  theme,
   IconButton,
   Icon,
   Input,
   HStack,
+  Flex,
+  Progress,
 } from '@chakra-ui/react';
+import theme from '../../common/chakraTheme';
 import { LuList, LuHelpCircle, LuChevronsLeft } from 'react-icons/lu';
 import { useAtom, useAtomValue } from 'jotai';
 import {
@@ -31,7 +33,17 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import ToC from './ToC';
 import { useParams, useLocation } from 'react-router-dom';
 import { db } from '../../common/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getCountFromServer,
+  getDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  startAfter,
+} from 'firebase/firestore';
 import axios from 'axios';
 
 //editor extentions
@@ -88,6 +100,13 @@ const Editor = () => {
   });
 
   const { pathname } = useLocation();
+
+  const [contentCount, setContentCount] = useState(0);
+  const [contentFetchCount, setContentFetchCount] = useState(0);
+  const isContentMax = contentCount === contentFetchCount;
+  const [lastContentVisible, setLastContentVisible] = useState(undefined);
+  const [isContentFetch, setIsContentFetch] = useState(false);
+  const [articleContents, setArticleContents] = useState([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -209,16 +228,52 @@ const Editor = () => {
   useEffect(() => {
     const fetchArticle = async (type, id) => {
       const articleRef = doc(db, 'users', authUser.uid, type, id);
+      const articleContentsColl = collection(
+        db,
+        'users',
+        authUser.uid,
+        type,
+        id,
+        'contents'
+      );
       const articleSnap = await getDoc(articleRef);
-      const article = articleSnap.data();
-      const { title, tags, content, tocItems } = article;
+      const { title, tags, tocItems } = articleSnap.data();
+
+      const articleContentsCountSnap = await getCountFromServer(
+        articleContentsColl
+      );
+      setContentCount(articleContentsCountSnap.data().count);
+
+      const articleContentsQuery = query(
+        articleContentsColl,
+        orderBy('index', 'asc'),
+        limit(1)
+      );
+      const articleContentsSnap = await getDocs(articleContentsQuery);
+
+      const lastVisible =
+        articleContentsSnap.docs[articleContentsSnap.docs.length - 1];
+
+      const articleContents = articleContentsSnap.docs.flatMap(
+        docData => docData.data().content
+      );
+
+      const tiptapContent = {
+        type: 'doc',
+        content: articleContents,
+      };
 
       const tagsForEditor = tags.map(tag => ({ id: tag, text: tag }));
 
       setTitle(title);
       setTags(tagsForEditor);
       setTocItems(tocItems);
-      editor.commands.setContent(content);
+
+      editor.commands.setContent(tiptapContent);
+      setArticleContents(articleContents);
+      setLastContentVisible(lastVisible);
+      setContentFetchCount(contentFetchCount => contentFetchCount + 1);
+      setIsContentFetch(true);
     };
 
     if (authUser && aid && editor) {
@@ -227,6 +282,72 @@ const Editor = () => {
       fetchArticle('drafts', did);
     }
   }, [authUser, aid, did, editor]);
+
+  useEffect(() => {
+    const fetchMoreArticleContent = async (type, id) => {
+      const articleContentQuery = query(
+        collection(db, 'users', authUser.uid, type, id, 'contents'),
+        orderBy('index', 'asc'),
+        startAfter(lastContentVisible),
+        limit(1)
+      );
+      const articleContentSnap = await getDocs(articleContentQuery);
+
+      const fetchedArticleContents = articleContentSnap.docs.flatMap(
+        docData => docData.data().content
+      );
+      const updatedArticleContents = articleContents.concat(
+        fetchedArticleContents
+      );
+
+      const tiptapContent = {
+        type: 'doc',
+        content: updatedArticleContents,
+      };
+
+      editor.commands.setContent(tiptapContent);
+      setArticleContents(updatedArticleContents);
+
+      const lastVisible =
+        articleContentSnap.docs[articleContentSnap.docs.length - 1];
+      setLastContentVisible(lastVisible);
+      setContentFetchCount(contentFetchCount + 1);
+    };
+
+    if (
+      authUser &&
+      aid &&
+      editor &&
+      isContentFetch &&
+      lastContentVisible &&
+      !isContentMax
+    ) {
+      setIsContentFetch(false);
+      fetchMoreArticleContent('articles', aid);
+      setIsContentFetch(true);
+    } else if (
+      authUser &&
+      did &&
+      editor &&
+      isContentFetch &&
+      lastContentVisible &&
+      !isContentMax
+    ) {
+      setIsContentFetch(false);
+      fetchMoreArticleContent('drafts', did);
+      setIsContentFetch(true);
+    }
+  }, [
+    isContentFetch,
+    isContentMax,
+    lastContentVisible,
+    editor,
+    articleContents,
+    aid,
+    did,
+    authUser,
+    contentFetchCount,
+  ]);
 
   const setIsTocActive = () => {
     if (isSide && !isToc) {
@@ -398,6 +519,17 @@ const Editor = () => {
                   }
                 >
                   <EditorContent editor={editor} />
+                  {!isContentMax && (
+                    <Flex
+                      w="100%"
+                      h="2em"
+                      justifyContent="center"
+                      alignItems="center"
+                      mt="2em"
+                    >
+                      <Progress color="teal" isIndeterminate />
+                    </Flex>
+                  )}
                 </Box>
               </GridItem>
             </Grid>

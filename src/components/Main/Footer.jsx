@@ -26,7 +26,7 @@ const Footer = () => {
       flexFlow={isSp && 'column'}
     >
       <StackItem mr="auto">
-        <Link as={RouterLink} to="/">
+        <RouterLink to="/">
           <VStack alignItems="baseline" gap="0">
             <HStack gap="2px">
               <Image src={fiscaLogo} h="30px" w="30px" />
@@ -55,7 +55,7 @@ const Footer = () => {
               </Text>
             )}
           </VStack>
-        </Link>
+        </RouterLink>
       </StackItem>
       <Flex
         justifyContent={isSp ? 'space-between' : 'flex-end'}

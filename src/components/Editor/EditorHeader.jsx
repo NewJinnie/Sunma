@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -23,6 +23,8 @@ import {
   updateDoc,
   doc,
   deleteDoc,
+  setDoc,
+  getDocs,
 } from 'firebase/firestore';
 import { db, storage } from '../../common/firebaseConfig';
 import { useAtomValue } from 'jotai';
@@ -32,6 +34,8 @@ import { ref, getDownloadURL, uploadBytes } from 'firebase/storage';
 
 const EditorHeader = ({ editor, title, tags, tocItems, aid, did }) => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
   const authUser = useAtomValue(authUserAtom);
   const editorFiles = useAtomValue(editorFilesAtom);
   const tocItemsForFS = tocItems.map(item => ({
@@ -74,10 +78,14 @@ const EditorHeader = ({ editor, title, tags, tocItems, aid, did }) => {
       })
     );
 
-    const contentJsonForFS = {
-      ...contentJson,
-      content: editorContentsForImage,
+    const sliceByNumber = (array, number) => {
+      const length = Math.ceil(array.length / number);
+      return new Array(length)
+        .fill()
+        .map((_, i) => array.slice(i * number, (i + 1) * number));
     };
+
+    const editorContentsForFS = sliceByNumber(editorContentsForImage, 10);
 
     const ngram = (words, n) => {
       var i;
@@ -90,54 +98,193 @@ const EditorHeader = ({ editor, title, tags, tocItems, aid, did }) => {
     };
 
     const titleSearchKeys = ngram(title, 2);
-    const contentsWords = editorContents
-      .flatMap(e =>
-        e.content
-          ? e.content.flatMap(e => (e.text === undefined ? [] : e.text))
-          : []
-      )
-      .join('');
-    const contentsSearchKeys = ngram(contentsWords, 2);
-    const searchKeys = titleSearchKeys.concat(contentsSearchKeys);
 
     const newArticleObj = {
       uid: authUser.uid,
       title: title,
-      searchKeys: searchKeys,
+      searchKeys: titleSearchKeys,
       tags: tagsForFS,
       tocItems: tocItemsForFS,
-      content: contentJsonForFS,
       createdAt: moment().format(),
       updatedAt: moment().format(),
     };
 
+    const articleTypeRef = doc(collection(db, 'users', authUser.uid, type));
+    const articleContentsIdsColl = collection(
+      db,
+      'users',
+      authUser.uid,
+      type,
+      articleTypeRef.id,
+      'contentIds'
+    );
+
     if (!aid && !did) {
-      await addDoc(collection(db, 'users', authUser.uid, type), newArticleObj);
+      await setDoc(articleTypeRef, newArticleObj);
+
+      let contentIds = [];
+      for (const [index, content] of editorContentsForFS.entries()) {
+        const contentId = Math.random().toString();
+        await setDoc(
+          doc(
+            db,
+            'users',
+            authUser.uid,
+            type,
+            articleTypeRef.id,
+            'contents',
+            contentId
+          ),
+          {
+            content: content,
+            index: index,
+          }
+        );
+        contentIds.push(contentId);
+      }
+      for (const contentId of contentIds) {
+        await addDoc(articleContentsIdsColl, { contentId: contentId });
+      }
     } else if (did && type === 'articles') {
       await deleteDoc(doc(db, 'users', authUser.uid, 'drafts', did));
-      await addDoc(collection(db, 'users', authUser.uid, type), newArticleObj);
+      await setDoc(articleTypeRef, newArticleObj);
+
+      let contentIds = [];
+      for (const [index, content] of editorContentsForFS.entries()) {
+        const contentId = Math.random().toString();
+        await setDoc(
+          doc(
+            db,
+            'users',
+            authUser.uid,
+            type,
+            articleTypeRef.id,
+            'contents',
+            contentId
+          ),
+          {
+            content: content,
+            index: index,
+          }
+        );
+        contentIds.push(contentId);
+      }
+      for (const contentId of contentIds) {
+        await addDoc(articleContentsIdsColl, { contentId: contentId });
+      }
     } else {
+      const articleContentIdsForDeleteColl = aid
+        ? collection(db, 'users', authUser.uid, 'articles', aid, 'contentIds')
+        : collection(db, 'users', authUser.uid, 'drafts', did, 'contentIds');
+      const articleContentIdsForDeleteSnap = await getDocs(
+        articleContentIdsForDeleteColl
+      );
+      for (const docData of articleContentIdsForDeleteSnap.docs) {
+        (await aid)
+          ? deleteDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'articles',
+                aid,
+                'contentIds',
+                docData.id
+              )
+            )
+          : deleteDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'drafts',
+                did,
+                'contentIds',
+                docData.id
+              )
+            );
+      }
+      for (const docData of articleContentIdsForDeleteSnap.docs) {
+        (await aid)
+          ? deleteDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'articles',
+                aid,
+                'contents',
+                docData.data().contentId
+              )
+            )
+          : deleteDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'drafts',
+                did,
+                'contents',
+                docData.data().contentId
+              )
+            );
+      }
+
       let updatedArticleObj = {
         title: title,
-        searchKeys: searchKeys,
+        searchKeys: titleSearchKeys,
         tags: tagsForFS,
         tocItems: tocItemsForFS,
-        content: contentJsonForFS,
       };
-
       if (aid) {
         updatedArticleObj = {
           ...updatedArticleObj,
           updatedAt: moment().format(),
         };
       }
-
       await updateDoc(
         aid
           ? doc(db, 'users', authUser.uid, type, aid)
           : doc(db, 'users', authUser.uid, type, did),
         updatedArticleObj
       );
+
+      let contentIds = [];
+      for (const [index, content] of editorContentsForFS.entries()) {
+        const contentId = Math.random().toString();
+        (await aid)
+          ? setDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'articles',
+                aid,
+                'contents',
+                contentId
+              ),
+              {
+                content: content,
+                index: index,
+              }
+            )
+          : setDoc(
+              doc(
+                db,
+                'users',
+                authUser.uid,
+                'drafts',
+                did,
+                'contents',
+                contentId
+              ),
+              { content: content, index: index }
+            );
+        contentIds.push(contentId);
+      }
+      for (const contentId of contentIds) {
+        await addDoc(articleContentIdsForDeleteColl, { contentId: contentId });
+      }
     }
   };
 
@@ -147,7 +294,9 @@ const EditorHeader = ({ editor, title, tags, tocItems, aid, did }) => {
     } else if (title === '') {
       window.alert('タイトルは必須です');
     } else {
+      setIsLoading(true);
       await storeArticle(type);
+      setIsLoading(false);
       navigate(`/users/${authUser.uid}`);
     }
   };
@@ -232,6 +381,7 @@ const EditorHeader = ({ editor, title, tags, tocItems, aid, did }) => {
                 variant="ghost"
                 colorScheme="teal"
                 onClick={() => storeAndNavigate(articleType.PUBLIC)}
+                isLoading={isLoading}
               >
                 投稿する
               </Button>
