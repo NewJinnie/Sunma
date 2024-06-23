@@ -159,7 +159,7 @@ const UserSetting = () => {
                 </HStack>
                 <HStack>
                   <Text margin="0" color="gray">
-                    https://sunma.fun/
+                    https://sunma.club/
                   </Text>
                   <Input
                     type="text"
