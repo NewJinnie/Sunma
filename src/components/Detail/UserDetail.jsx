@@ -396,11 +396,7 @@ const UserDetail = () => {
               justifyContent="flex-start"
               minH="80vh"
             >
-              <TabList
-                flexWrap="wrap"
-                justifyContent={isSp && 'space-between'}
-                padding={isSp && '0 15px'}
-              >
+              <TabList flexWrap="wrap" padding={isSp && '0 15px'}>
                 {tabLists.map((tab, i) => {
                   return (
                     <Tab key={i} fontSize={isSp && 'small'}>

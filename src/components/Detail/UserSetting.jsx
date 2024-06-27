@@ -83,7 +83,7 @@ const UserSetting = () => {
       user => user.data().userName === userName
     );
 
-    if (isUserNameExists) {
+    if (isWelcome && isUserNameExists) {
       window.alert('既にそのユーザー名は利用されています');
     } else {
       const userObject = {
@@ -270,6 +270,8 @@ const UserSetting = () => {
                       (userName && userName.length === 0) ||
                       (displayName && displayName.length === 0) ||
                       !isUserNameInValid
+                    : !isWelcome && userName === ''
+                    ? true
                     : false
                 }
                 onClick={registerUserProfile}

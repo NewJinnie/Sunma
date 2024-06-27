@@ -1098,7 +1098,7 @@ const PostDetail = () => {
                 </Box>
                 {isSp && (
                   <Box w="100%" bg="white" borderRadius="10px">
-                    <RouterLink to={`users//${author.uid}`}>
+                    <RouterLink to={`/users/${author.uid}`}>
                       <VStack padding="20px" alignItems="baseline">
                         <Text fontWeight="bold" padding="0.5em">
                           Author
